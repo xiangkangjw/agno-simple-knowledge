@@ -78,8 +78,8 @@ async def search_documents(
         if not search_request.query.strip():
             raise HTTPException(status_code=400, detail="Query cannot be empty")
 
-        # Search documents
-        results = knowledge_system.query_engine.search_documents(
+        # Search documents via Agno knowledge
+        results = knowledge_system.search_documents(
             search_request.query,
             search_request.top_k
         )

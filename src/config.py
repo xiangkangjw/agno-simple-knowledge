@@ -76,8 +76,13 @@ class Config:
     @property
     def storage_path(self) -> str:
         """Get ChromaDB storage path."""
-        return self.get('indexing.storage_path', './chroma_db')
-    
+        return self.get('storage.persist_directory', self.get('indexing.storage_path', './storage/chroma_db'))
+
+    @property
+    def collection_name(self) -> str:
+        """Get ChromaDB collection name."""
+        return self.get('storage.collection_name', 'documents')
+
     @property
     def chunk_size(self) -> int:
         """Get document chunk size."""

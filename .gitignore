@@ -53,6 +53,12 @@ build/
 src-tauri/target/
 src-tauri/Cargo.lock
 
+# Generated Tauri icon assets
+src-tauri/icons/android/
+src-tauri/icons/ios/
+src-tauri/icons/Square*.png
+src-tauri/icons/StoreLogo.png
+
 # Package manager lockfiles (optional - you can uncomment if you want to ignore them)
 # package-lock.json
 # yarn.lock

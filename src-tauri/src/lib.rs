@@ -1,8 +1,7 @@
-use tauri::Manager;
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
-use std::thread;
 use std::time::Duration;
+use tauri::Manager;
 
 // State to track the Python backend process
 struct PythonBackend {
@@ -16,7 +15,9 @@ fn greet(name: &str) -> String {
 }
 
 #[tauri::command]
-async fn start_python_backend() -> Result<String, String> {
+async fn start_python_backend(
+    python_backend: tauri::State<'_, PythonBackend>,
+) -> Result<String, String> {
     println!("Starting Python backend...");
 
     // Get the app directory - need to go up one level from src-tauri in dev mode
@@ -59,12 +60,36 @@ async fn start_python_backend() -> Result<String, String> {
         .stderr(Stdio::inherit())
         .env("PORT", "8000");
 
+    let existing_process = {
+        let mut state_guard = python_backend
+            .process
+            .lock()
+            .map_err(|e| format!("Failed to lock backend state: {}", e))?;
+        state_guard.take()
+    };
+
+    if let Some(mut existing) = existing_process {
+        if let Err(kill_err) = existing.kill() {
+            eprintln!("Failed to kill existing backend process: {}", kill_err);
+        }
+        let _ = existing.wait();
+    }
+
     match command.spawn() {
         Ok(process) => {
-            println!("Python backend started with PID: {}", process.id());
+            let pid = process.id();
+            {
+                let mut state_guard = python_backend
+                    .process
+                    .lock()
+                    .map_err(|e| format!("Failed to lock backend state: {}", e))?;
+                *state_guard = Some(process);
+            }
+
+            println!("Python backend started with PID: {}", pid);
 
             // Give the server a moment to start
-            thread::sleep(Duration::from_secs(2));
+            tokio::time::sleep(Duration::from_secs(2)).await;
 
             Ok("Python backend started successfully".to_string())
         }
@@ -99,7 +124,8 @@ pub fn run() {
             // Start Python backend on app startup
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                match start_python_backend().await {
+                let backend_state = app_handle.state::<PythonBackend>();
+                match start_python_backend(backend_state).await {
                     Ok(msg) => println!("✓ {}", msg),
                     Err(err) => eprintln!("✗ Failed to start backend: {}", err),
                 }

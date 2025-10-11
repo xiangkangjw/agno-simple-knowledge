@@ -50,7 +50,7 @@ class DocumentIndexer:
         self.chroma_client = chromadb.PersistentClient(path=str(storage_path))
 
         # Get or create collection
-        self.collection_name = "knowledge_base"
+        self.collection_name = self.config.collection_name
         try:
             self.chroma_collection = self.chroma_client.get_collection(self.collection_name)
             logger.info(f"Loaded existing collection: {self.collection_name}")

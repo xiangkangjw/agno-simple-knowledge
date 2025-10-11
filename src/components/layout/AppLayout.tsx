@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
-import { Brain, MessageSquare, FileText, Settings, Activity } from "lucide-react";
+import { Brain, Settings, Activity } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { api, SystemStatus } from "@/lib/api";
 
 interface AppLayoutProps {

@@ -88,6 +88,11 @@ class Config:
         return storage_path
 
     @property
+    def collection_name(self) -> str:
+        """Get ChromaDB collection name."""
+        return self.get('indexing.collection_name', 'knowledge_base')
+
+    @property
     def chunk_size(self) -> int:
         """Get document chunk size."""
         return self.get('indexing.chunk_size', 1024)

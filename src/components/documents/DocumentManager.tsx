@@ -16,7 +16,6 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { api, SystemStatus } from "@/lib/api";
-import { open } from '@tauri-apps/plugin-shell';
 
 interface DocumentStats {
   status: string;
@@ -32,7 +31,6 @@ interface DocumentManagerProps {
 export function DocumentManager({ className }: DocumentManagerProps) {
   const [stats, setStats] = useState<DocumentStats | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isAddingFiles, setIsAddingFiles] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -249,11 +247,11 @@ export function DocumentManager({ className }: DocumentManagerProps) {
               </p>
 
               <div className="flex justify-center space-x-4">
-                <Button onClick={openFileDialog} disabled={isAddingFiles}>
+                <Button onClick={openFileDialog}>
                   <FileText className="h-4 w-4 mr-2" />
                   Select Files
                 </Button>
-                <Button onClick={openFolderDialog} disabled={isAddingFiles} variant="outline">
+                <Button onClick={openFolderDialog} variant="outline">
                   <FolderOpen className="h-4 w-4 mr-2" />
                   Select Folder
                 </Button>
