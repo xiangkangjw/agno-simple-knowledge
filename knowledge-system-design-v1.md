@@ -14,7 +14,7 @@ A simple text-based knowledge management system with indexing and chat capabilit
 ### Chat Interface
 - **Agno framework** for agent reasoning
 - **LlamaIndex Query Engine** for retrieval and synthesis
-- **PyQt6** for native macOS application
+- **Tauri + React** for the desktop shell
 
 ## Simple Architecture
 
@@ -38,7 +38,7 @@ File System → LlamaIndex Readers → Text Nodes → Text Embeddings → Chroma
 - **Text-only file indexing** (txt, md, pdf text)
 - **LlamaIndex document processing** with simple text chunking
 - **Basic Agno agent** with LlamaIndex query engine integration
-- **Native macOS chat interface** for text queries
+- **Native desktop chat interface** via Tauri + React
 - **Configuration file** for target directories
 - **Manual refresh** button to re-index
 
@@ -53,12 +53,13 @@ File System → LlamaIndex Readers → Text Nodes → Text Embeddings → Chroma
 ```
 knowledge-system/
 ├── src/
-│   ├── indexer.py       # Document loading and indexing
-│   ├── chat_agent.py    # Agno agent with LlamaIndex tools
+│   ├── components/      # React UI components
+│   ├── lib/             # Frontend utilities
+│   ├── chat_agent.py    # Agno agent wiring used by legacy tooling
 │   ├── query_engine.py  # LlamaIndex query processing
 │   └── config.py        # Configuration management
-├── ui/
-│   └── streamlit_app.py # Simple chat interface
+├── src-tauri/          # Rust shell and command wiring
+├── python-backend/     # FastAPI service and core logic
 ├── config.yaml         # Directories and settings
 └── requirements.txt     # Dependencies
 ```
@@ -84,36 +85,16 @@ python-dotenv
 pydantic
 ```
 
-## macOS Native App Option
+## Desktop App Shell Choice
 
-Yes, a macOS app would be better than a web app for this use case:
+Tauri provides the native desktop experience while letting us reuse a modern web UI stack:
 
-### UI Options
-1. **PyQt6/PySide6** - Native-looking macOS app
-2. **Streamlit** - Simple web-based (fallback option)
-3. **Tkinter** - Basic but lightweight
+- **Lightweight** distribution (~2–3 MB binaries) with system-level integrations
+- **Rust** command layer to manage the local FastAPI backend process
+- **React + TypeScript** frontend for rapid iteration and polished UI components
+- **Shared** configuration with the Python services—no duplicated logic
 
-### macOS App Benefits
-- **Better file access** - easier directory selection and monitoring
-- **Native integration** - system notifications, menu bar
-- **Always available** - no need to start web server
-- **Better UX** - native macOS look and feel
-
-### Updated Project Structure
-```
-knowledge-system/
-├── src/
-│   ├── indexer.py       # Document loading and indexing
-│   ├── chat_agent.py    # Agno agent with LlamaIndex tools
-│   ├── query_engine.py  # LlamaIndex query processing
-│   └── config.py        # Configuration management
-├── ui/
-│   └── macos_app.py     # PyQt6 native macOS app
-├── config.yaml         # Directories and settings
-└── requirements.txt     # Dependencies
-```
-
-### Updated Dependencies
+### Additional Dependencies
 ```python
 # LlamaIndex Core (same as before)
 llama-index>=0.10.0
@@ -124,9 +105,7 @@ llama-index-embeddings-openai
 # No additional document processing needed
 # (LlamaIndex handles txt, md, pdf natively)
 
-# macOS Native UI
-PyQt6
-agno-framework
+# Desktop shell + build tooling handled by package.json / Rust Cargo
 
 # Storage & utilities
 chromadb>=0.4.0
@@ -146,7 +125,7 @@ pydantic
 1. **Foundation**: Set up LlamaIndex + Chroma indexing
 2. **Document processing**: Text extraction from common formats
 3. **Chat agent**: Integrate Agno with LlamaIndex query engine
-4. **macOS UI**: Build PyQt6 interface with chat and settings
+4. **Desktop UI**: Build React interface and integrate through Tauri commands
 5. **Polish**: Add file selection, progress indicators, settings
 
 ### Future Enhancements (Post-MVP)

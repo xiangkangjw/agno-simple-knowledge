@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Main entry point for the Knowledge Management System."""
+"""Legacy launcher retained for compatibility.
 
-import sys
-import os
-
-# Add the current directory to the Python path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from ui.macos_app import main
+The project now runs through the Tauri shell. Use `npm run tauri:dev` during
+development or `npm run tauri:build` for production builds.
+"""
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(
+        "The PyQt UI has been removed. Launch the Tauri app with "
+        "`npm run tauri:dev`."
+    )

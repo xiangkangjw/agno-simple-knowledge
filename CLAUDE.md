@@ -12,13 +12,13 @@ The system follows a three-layer architecture:
 
 1. **Document Processing Layer**: LlamaIndex readers for text, markdown, and PDF files
 2. **Storage Layer**: ChromaDB vector store for persistent embeddings  
-3. **Interface Layer**: Agno agent with LlamaIndex query engine for natural language interaction
+3. **Interface Layer**: React/Tauri desktop shell backed by the Agno-powered query layer
 
 Key architectural decisions:
 - **Local-first**: All data remains on the user's machine
 - **Text-focused**: Prioritizes reliable text extraction and search
 - **Manual indexing**: User-controlled refresh for document updates
-- **Native macOS UI**: PyQt6 for better system integration
+- **Native desktop UI**: Tauri + React for lightweight distribution
 
 ## Planned Project Structure
 
@@ -29,9 +29,6 @@ src/
 ├── query_engine.py  # LlamaIndex query processing and retrieval
 └── config.py        # Configuration management
 
-ui/
-└── macos_app.py     # PyQt6 native macOS application
-
 config.yaml          # Directory targets and system settings
 requirements.txt     # Python dependencies
 ```
@@ -41,7 +38,7 @@ requirements.txt     # Python dependencies
 - **LlamaIndex ecosystem**: llama-index>=0.10.0, llama-index-vector-stores-chroma, llama-index-readers-file, llama-index-embeddings-openai
 - **Agno framework**: For intelligent agent reasoning
 - **ChromaDB**: Vector storage backend (>=0.4.0)
-- **PyQt6**: Native macOS interface
+- **Tauri + React**: Native-feeling desktop interface
 - **OpenAI**: Embeddings and language model integration
 
 ## Development Guidelines
@@ -49,20 +46,19 @@ requirements.txt     # Python dependencies
 ### File Organization
 - Keep document processing logic in `src/indexer.py`
 - Isolate agent reasoning in `src/chat_agent.py` using Agno patterns
-- Separate UI concerns in `ui/macos_app.py`
 - Use `config.yaml` for user-configurable settings
 
 ### Key Integration Points
 - LlamaIndex handles document reading and chunking natively
 - ChromaDB provides persistent vector storage between sessions
 - Agno agent integrates with LlamaIndex query engine for intelligent responses
-- PyQt6 provides native macOS look and feel
+- Tauri process manages the React UI and Python backend lifecycle
 
 ### Implementation Priority
 1. Set up LlamaIndex + ChromaDB indexing foundation
 2. Implement basic document processing for txt, md, pdf
 3. Create Agno agent with LlamaIndex query engine integration
-4. Build PyQt6 chat interface with file selection
+4. Build React chat interface and connect through Tauri commands
 5. Add configuration management and manual refresh capabilities
 
 ## Configuration

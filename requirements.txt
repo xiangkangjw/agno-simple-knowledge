@@ -10,9 +10,6 @@ chromadb>=0.4.0
 # Agno framework for intelligent reasoning
 agno>=0.1.0
 
-# Native macOS interface
-PyQt6>=6.0.0
-
 # Configuration management
 pyyaml>=6.0.0
 

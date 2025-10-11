@@ -1,16 +1,15 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `main.py` starts the desktop app and binds the UI to backend services.
+- `main.py` remains for legacy launchers and now directs developers to the Tauri workflow.
 - `src/` hosts core logic: `config.py` loads YAML and env vars, `indexer.py` ingests files, `query_engine.py` serves retrieval, and `chat_agent.py` wires Agno tools.
-- `ui/macos_app.py` contains all PyQt6 widgets; keep UI-only logic here.
 - `config.yaml` holds runtime tuning, while design notes live in `knowledge-system-design-v1.md`.
 
 ## Build, Test, and Development Commands
 - `python -m venv .venv && source .venv/bin/activate` prepares an isolated environment.
 - `pip install -r requirements.txt` installs Agno, LlamaIndex, ChromaDB, and UI dependencies.
-- `python main.py` runs the full experience; execute from the repo root for relative imports.
-- `python -m ui.macos_app` is useful when iterating on PyQt6 components.
+- `npm run tauri:dev` launches the desktop app alongside the FastAPI backend.
+- `npm run tauri:build` creates a distributable bundle.
 
 ## Coding Style & Naming Conventions
 - Follow PEP 8 with four-space indentation, snake_case for functions, and CapWords for classes.
