@@ -37,6 +37,7 @@ coverage.xml
 # Application artifacts
 logs/
 data/
+python-backend/chroma_db/chroma.sqlite3
 
 # Node.js dependencies
 node_modules/
