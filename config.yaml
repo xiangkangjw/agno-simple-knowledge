@@ -39,4 +39,38 @@ ui:
 system:
   log_level: "INFO"
   max_results: 10
-  enable_debug: false
+  enable_debug: true
+
+# Team-based knowledge system settings
+team:
+  # Enable team-based architecture (vs single agent)
+  enabled: true
+
+  # Team memory settings
+  memory:
+    enabled: true
+    database_file: "tmp/team_memory.db"
+
+  # Agent specialization settings
+  agents:
+    planning:
+      temperature: 0.3 # Lower for focused planning
+      role: "Query Analysis and Team Orchestration"
+
+    metadata:
+      temperature: 0.2 # Very focused for metadata extraction
+      role: "Metadata Extraction and Query Optimization"
+
+    search:
+      temperature: 0.4 # Balanced for search execution
+      role: "Knowledge Base Search Execution"
+
+    assembly:
+      temperature: 0.6 # Higher creativity for synthesis
+      role: "Result Synthesis and Response Assembly"
+
+  # Collaboration settings
+  collaboration:
+    show_member_responses: false # Keep responses clean
+    enable_agentic_filters: true
+    max_search_iterations: 3

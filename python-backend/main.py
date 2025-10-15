@@ -11,10 +11,26 @@ from fastapi.responses import JSONResponse
 import uvicorn
 
 from api.routes import chat, documents, system
+from core.config import config
 from core.knowledge_system import KnowledgeSystem
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=config.log_level)
+if config.enable_debug:
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger("uvicorn").setLevel(logging.DEBUG)
+    logging.getLogger("uvicorn.error").setLevel(logging.DEBUG)
+    logging.getLogger("uvicorn.access").setLevel(logging.DEBUG)
+    logging.getLogger("agno").setLevel(logging.DEBUG)
+    logging.getLogger("agno-team").setLevel(logging.DEBUG)
+    os.environ.setdefault("AGNO_DEBUG", "true")
+else:
+    logging.getLogger("uvicorn").setLevel(config.log_level)
+    logging.getLogger("uvicorn.error").setLevel(config.log_level)
+    logging.getLogger("uvicorn.access").setLevel(config.log_level)
+    logging.getLogger("agno").setLevel(config.log_level)
+    logging.getLogger("agno-team").setLevel(config.log_level)
+
 logger = logging.getLogger(__name__)
 
 # Global knowledge system instance
@@ -92,5 +108,6 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port,
         reload=True,
-        log_level="info"
+        log_level=config.log_level_name.lower(),
+        log_config=None,
     )

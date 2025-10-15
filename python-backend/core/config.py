@@ -1,9 +1,11 @@
 """Configuration management for the knowledge management system."""
 
+import logging
 import os
-import yaml
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
+import yaml
 from dotenv import load_dotenv
 
 class Config:
@@ -91,6 +93,42 @@ class Config:
     def collection_name(self) -> str:
         """Get ChromaDB collection name."""
         return self.get('indexing.collection_name', 'knowledge_base')
+
+    @property
+    def enable_debug(self) -> bool:
+        """Return True when debug mode is enabled."""
+        value = self.get('system.enable_debug', False)
+
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            return normalized in {"1", "true", "yes", "on"}
+
+        return bool(value)
+
+    @property
+    def log_level(self) -> int:
+        """Get the configured logging level."""
+        level_name = self.log_level_name
+        return getattr(logging, level_name, logging.INFO)
+
+    @property
+    def log_level_name(self) -> str:
+        """Get the configured logging level name."""
+        level = self.get('system.log_level', 'INFO')
+
+        if isinstance(level, str):
+            level_name = level.strip().upper() or 'INFO'
+        elif isinstance(level, int):
+            level_name = logging.getLevelName(level)
+            if not isinstance(level_name, str):
+                level_name = 'INFO'
+        else:
+            level_name = 'INFO'
+
+        if self.enable_debug and level_name != 'DEBUG':
+            return 'DEBUG'
+
+        return level_name
 
     @property
     def chunk_size(self) -> int:
