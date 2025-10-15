@@ -160,8 +160,8 @@ class KnowledgeSystem:
 
         try:
             logger.info("Processing document query: %s", query)
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._run_document_query, query)
+            # Directly await the async helper method
+            result = await self._run_document_query(query)
 
             if result is None:
                 return {
@@ -186,8 +186,8 @@ class KnowledgeSystem:
 
         try:
             logger.info("Processing chat message: %s", message)
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(None, self.chat_agent.chat, message)
+            # Directly await the async chat method
+            response = await self.chat_agent.chat(message)
 
             logger.info("Chat message processed successfully")
             return {"success": True, "response": response}
@@ -224,14 +224,19 @@ class KnowledgeSystem:
 
         return formatted
 
-    def _run_document_query(self, query: str) -> Optional[Dict[str, Any]]:
-        """Synchronously run a document query to reuse in executors."""
+    async def _run_document_query(self, query: str) -> Optional[Dict[str, Any]]:
+        """Asynchronously run a document query."""
         knowledge = self.knowledge_manager.get_knowledge_instance()
         if not knowledge:
             logger.error("Knowledge instance not ready for querying")
             return None
 
-        documents = knowledge.search(query=query, max_results=self.config.max_results)
+        # Run knowledge search in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        documents = await loop.run_in_executor(
+            None,
+            lambda: knowledge.search(query=query, max_results=self.config.max_results)
+        )
 
         sources: List[Dict[str, Any]] = []
         for doc in documents:
@@ -246,7 +251,8 @@ class KnowledgeSystem:
                 }
             )
 
-        answer = self.chat_agent.chat(query)
+        # Use the async chat method
+        answer = await self.chat_agent.chat(query)
 
         return {
             "answer": answer,

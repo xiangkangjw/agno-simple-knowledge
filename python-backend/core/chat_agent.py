@@ -1,5 +1,6 @@
 """Chat agent using Agno framework with native knowledge integration."""
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -94,7 +95,7 @@ Guidelines:
             logger.error("Failed to initialize knowledge agent: %s", exc)
             raise
 
-    def chat(self, message: str, stream: bool = False) -> str:
+    async def chat(self, message: str, stream: bool = False) -> str:
         """Process a chat message and return the agent's response.
 
         Args:
@@ -110,8 +111,13 @@ Guidelines:
         try:
             logger.info(f"Processing chat message: {message}")
 
-            # Get response from the agent
-            response = self.agent.run(message, stream=stream)
+            # Run the potentially blocking agent.run() in a thread pool
+            # to avoid blocking the async event loop
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.agent.run(message, stream=stream)
+            )
 
             # Extract the content from the response
             if hasattr(response, 'content'):
