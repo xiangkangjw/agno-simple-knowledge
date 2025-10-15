@@ -1,0 +1,53 @@
+# Build outputs and artifacts
+dist/
+build/
+node_modules/
+.vite/
+src-tauri/target/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Environment and configuration
+.env*
+!.env.example
+!.env.template
+
+# Logs and temporary files
+*.log
+.DS_Store
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage*
+
+# Database and storage
+python-backend/chroma_db/
+chroma.sqlite3*
+
+# Dependencies and lockfiles
+package-lock.json
+Cargo.lock
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Generated files
+*.tsbuildinfo
+src-tauri/icons/android/
+src-tauri/icons/ios/
+src-tauri/icons/Square*.png
+src-tauri/icons/StoreLogo.png
+
+# Debug and test scripts
+debug_*.py
+test_*.py
+
+# Git metadata
+.git/
