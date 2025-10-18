@@ -6,7 +6,6 @@ from typing import Optional, Dict, Any, List
 from .config import config
 from .agno_knowledge import AgnoKnowledgeManager
 from .knowledge_team import KnowledgePlanningTeam
-from .content_filter import ContentQualityFilter
 
 logger = logging.getLogger(__name__)
 
