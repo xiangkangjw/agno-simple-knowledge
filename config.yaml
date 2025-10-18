@@ -20,6 +20,14 @@ indexing:
   chunk_size: 1024
   chunk_overlap: 200
 
+  # PDF-specific settings
+  pdf:
+    enabled: true
+    max_file_size_mb: 100  # Skip PDFs larger than this
+    extract_metadata: true  # Include page numbers and file metadata
+    skip_encrypted: true    # Skip password-protected PDFs
+    timeout_seconds: 60     # Per-file processing timeout
+
 # OpenAI configuration
 openai:
   # API key (set via environment variable OPENAI_API_KEY)
@@ -40,6 +48,17 @@ system:
   log_level: "INFO"
   max_results: 10
   enable_debug: true
+
+# Long-running operations settings
+operations:
+  # SQLite database for tracking operations
+  database_file: "tmp/operations.db"
+
+  # How long to keep completed operations (hours)
+  cleanup_after_hours: 24
+
+  # Maximum time allowed for any operation (seconds)
+  max_timeout_seconds: 3600
 
 # Team-based knowledge system settings
 team:

@@ -17,8 +17,11 @@ class SearchDocumentsRequest(BaseModel):
     top_k: int = 10
 
 @router.post("/refresh")
-async def refresh_index(request: Request, background_tasks: BackgroundTasks) -> Dict[str, Any]:
-    """Refresh the entire document index."""
+async def refresh_index(request: Request) -> Dict[str, Any]:
+    """Start an asynchronous index refresh operation.
+
+    Returns operation_id to track progress via GET /operations/{operation_id}
+    """
     try:
         knowledge_system = request.app.state.knowledge_system
         if not knowledge_system:
@@ -27,7 +30,7 @@ async def refresh_index(request: Request, background_tasks: BackgroundTasks) -> 
         if not knowledge_system.is_ready():
             raise HTTPException(status_code=503, detail="Knowledge system not ready")
 
-        # Run refresh in background
+        # Start async refresh operation
         result = await knowledge_system.refresh_index()
         return result
 
@@ -38,10 +41,12 @@ async def refresh_index(request: Request, background_tasks: BackgroundTasks) -> 
 @router.post("/add")
 async def add_documents(
     request: Request,
-    add_request: AddDocumentsRequest,
-    background_tasks: BackgroundTasks
+    add_request: AddDocumentsRequest
 ) -> Dict[str, Any]:
-    """Add documents to the index."""
+    """Start an asynchronous add documents operation.
+
+    Returns operation_id to track progress via GET /operations/{operation_id}
+    """
     try:
         knowledge_system = request.app.state.knowledge_system
         if not knowledge_system:
@@ -53,7 +58,7 @@ async def add_documents(
         if not add_request.file_paths:
             raise HTTPException(status_code=400, detail="No file paths provided")
 
-        # Add documents
+        # Start async add documents operation
         result = await knowledge_system.add_documents(add_request.file_paths)
         return result
 
@@ -106,7 +111,7 @@ async def get_document_stats(request: Request) -> Dict[str, Any]:
         if not knowledge_system.is_ready():
             return {"status": "not_ready", "document_count": 0}
 
-        stats = knowledge_system.indexer.get_index_stats()
+        stats = knowledge_system.document_service.get_index_stats()
         return stats
 
     except Exception as e:

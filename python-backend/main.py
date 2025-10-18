@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-from api.routes import chat, documents, system
+from api.routes import chat, documents, system, operations
 from core.config import config
 from core.knowledge_system import KnowledgeSystem
 
@@ -80,6 +80,7 @@ app.add_middleware(
 app.include_router(system.router, prefix="/api/system", tags=["system"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(operations.router, prefix="/api", tags=["operations"])
 
 @app.get("/")
 async def root():

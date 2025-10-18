@@ -165,6 +165,31 @@ class Config:
         """Get maximum number of search results."""
         return self.get('system.max_results', 10)
 
+    @property
+    def pdf_enabled(self) -> bool:
+        """Check if PDF processing is enabled."""
+        return self.get('indexing.pdf.enabled', True)
+
+    @property
+    def pdf_max_file_size_mb(self) -> int:
+        """Get maximum PDF file size in MB."""
+        return self.get('indexing.pdf.max_file_size_mb', 100)
+
+    @property
+    def pdf_extract_metadata(self) -> bool:
+        """Check if PDF metadata extraction is enabled."""
+        return self.get('indexing.pdf.extract_metadata', True)
+
+    @property
+    def pdf_skip_encrypted(self) -> bool:
+        """Check if encrypted PDFs should be skipped."""
+        return self.get('indexing.pdf.skip_encrypted', True)
+
+    @property
+    def pdf_timeout_seconds(self) -> int:
+        """Get PDF processing timeout in seconds."""
+        return self.get('indexing.pdf.timeout_seconds', 60)
+
     def save_config(self) -> None:
         """Save current configuration to file."""
         with open(self.config_path, 'w') as f:

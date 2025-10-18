@@ -3,13 +3,15 @@
 import os
 import logging
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
+import time
 
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import StorageContext
 from llama_index.embeddings.openai import OpenAIEmbedding
+from llama_index.readers.file import PyMuPDFReader
 import chromadb
 
 from .config import config
@@ -19,9 +21,35 @@ logger = logging.getLogger(__name__)
 class DocumentIndexer:
     """Handles document loading, processing, and indexing with LlamaIndex and ChromaDB."""
 
+    # Error category constants
+    PDF_ERROR_CATEGORIES = {
+        'corrupted': 'File integrity issue',
+        'encrypted': 'Password-protected PDF',
+        'empty': 'No extractable text',
+        'oversized': 'Exceeds size limit',
+        'parse_error': 'PDF parsing failed',
+        'timeout': 'Processing timeout',
+        'permission': 'Access denied',
+        'invalid': 'Not a valid PDF',
+    }
+
     def __init__(self):
         """Initialize the document indexer."""
         self.config = config
+
+        # Initialize PDF reader placeholder
+        self._pdf_reader: Optional[PyMuPDFReader] = None
+
+        # Tracking for PDF processing statistics
+        self._pdf_stats: Dict[str, Any] = {
+            'total': 0,
+            'successful': 0,
+            'failed': 0,
+            'errors_by_category': {cat: 0 for cat in self.PDF_ERROR_CATEGORIES},
+            'failed_files': [],  # List of (filename, error_category, error_message)
+            'total_processing_time': 0.0,
+        }
+
         self._setup_settings()
         self._initialize_chroma()
         self.index: Optional[VectorStoreIndex] = None
@@ -39,6 +67,87 @@ class DocumentIndexer:
             chunk_size=self.config.chunk_size,
             chunk_overlap=self.config.chunk_overlap
         )
+
+        # Initialize PDF reader if enabled
+        if self.config.pdf_enabled:
+            self._pdf_reader = PyMuPDFReader()
+            logger.info("PyMuPDFReader initialized for PDF processing")
+
+    def _validate_pdf(self, file_path: str) -> Tuple[bool, Optional[str], Optional[str]]:
+        """Validate PDF file before processing.
+
+        Args:
+            file_path: Path to PDF file
+
+        Returns:
+            Tuple of (is_valid, error_category, error_message)
+        """
+        path = Path(file_path)
+
+        # Check file exists and is readable
+        if not path.exists():
+            return False, 'invalid', 'File does not exist'
+
+        if not path.is_file():
+            return False, 'invalid', 'Not a file'
+
+        try:
+            # Check file permissions
+            if not os.access(path, os.R_OK):
+                return False, 'permission', 'File is not readable'
+
+            # Check file size
+            file_size_mb = path.stat().st_size / (1024 * 1024)
+            max_size = self.config.pdf_max_file_size_mb
+            if file_size_mb > max_size:
+                return False, 'oversized', f'File size {file_size_mb:.1f}MB exceeds limit {max_size}MB'
+
+            # Check if it's a PDF (magic bytes check)
+            with open(path, 'rb') as f:
+                header = f.read(4)
+                if header != b'%PDF':
+                    return False, 'invalid', 'Not a valid PDF file (invalid header)'
+
+            # Check if PDF is encrypted (basic check)
+            if self.config.pdf_skip_encrypted:
+                try:
+                    import fitz
+                    pdf_doc = fitz.open(path)
+                    if pdf_doc.is_pdf and pdf_doc.needs_pass:
+                        pdf_doc.close()
+                        return False, 'encrypted', 'PDF is password-protected'
+                    pdf_doc.close()
+                except Exception as e:
+                    logger.warning(f"Could not check if PDF is encrypted: {e}")
+                    # Continue anyway, let the parser handle it
+
+            return True, None, None
+
+        except OSError as e:
+            return False, 'permission', f'Cannot access file: {str(e)}'
+        except Exception as e:
+            return False, 'corrupted', f'Validation error: {str(e)}'
+
+    def _track_pdf_error(self, file_path: str, error_category: str, error_message: str) -> None:
+        """Track a PDF processing error.
+
+        Args:
+            file_path: Path to the PDF file
+            error_category: Category of error
+            error_message: Detailed error message
+        """
+        filename = Path(file_path).name
+        self._pdf_stats['failed'] += 1
+        self._pdf_stats['errors_by_category'][error_category] = (
+            self._pdf_stats['errors_by_category'].get(error_category, 0) + 1
+        )
+        self._pdf_stats['failed_files'].append({
+            'filename': filename,
+            'path': file_path,
+            'error_category': error_category,
+            'error_message': error_message
+        })
+        logger.warning(f"PDF error [{error_category}] {filename}: {error_message}")
 
     def _initialize_chroma(self) -> None:
         """Initialize ChromaDB client and collection."""
@@ -77,7 +186,7 @@ class DocumentIndexer:
         return [str(doc) for doc in documents]
 
     def load_documents(self, file_paths: Optional[List[str]] = None) -> List[Any]:
-        """Load documents using LlamaIndex readers.
+        """Load documents using LlamaIndex readers with PDF-specific handling.
 
         Args:
             file_paths: Optional list of specific file paths to load.
@@ -95,11 +204,72 @@ class DocumentIndexer:
 
         logger.info(f"Loading {len(file_paths)} documents...")
 
-        # Use SimpleDirectoryReader with specific files
+        # Reset PDF stats for this load operation
+        self._pdf_stats = {
+            'total': 0,
+            'successful': 0,
+            'failed': 0,
+            'errors_by_category': {cat: 0 for cat in self.PDF_ERROR_CATEGORIES},
+            'failed_files': [],
+            'total_processing_time': 0.0,
+        }
+
         documents = []
-        for file_path in file_paths:
+        pdf_files = [f for f in file_paths if f.lower().endswith('.pdf')]
+        non_pdf_files = [f for f in file_paths if not f.lower().endswith('.pdf')]
+
+        # Track PDF statistics
+        self._pdf_stats['total'] = len(pdf_files)
+
+        # Load PDFs with enhanced error handling
+        for file_path in pdf_files:
+            start_time = time.time()
             try:
-                # Load each file individually to handle errors gracefully
+                # Validate PDF before processing
+                is_valid, error_cat, error_msg = self._validate_pdf(file_path)
+                if not is_valid:
+                    self._track_pdf_error(file_path, error_cat, error_msg)
+                    continue
+
+                # Load PDF using PyMuPDFReader
+                if self._pdf_reader is None:
+                    logger.error(f"PDF reader not initialized, skipping: {file_path}")
+                    self._track_pdf_error(file_path, 'parse_error', 'PDF reader not initialized')
+                    continue
+
+                docs = self._pdf_reader.load_data(
+                    file_path=Path(file_path),
+                    metadata=self.config.pdf_extract_metadata
+                )
+
+                if not docs:
+                    self._track_pdf_error(file_path, 'empty', 'No text extracted from PDF')
+                    continue
+
+                documents.extend(docs)
+                self._pdf_stats['successful'] += 1
+                elapsed = time.time() - start_time
+                self._pdf_stats['total_processing_time'] += elapsed
+                logger.info(f"✓ Loaded PDF {Path(file_path).name} ({len(docs)} pages, {elapsed:.2f}s)")
+
+            except TimeoutError:
+                self._track_pdf_error(file_path, 'timeout', 'Processing timeout exceeded')
+            except PermissionError:
+                self._track_pdf_error(file_path, 'permission', 'Permission denied')
+            except Exception as e:
+                error_msg = str(e)
+                # Try to categorize the error
+                if 'encrypt' in error_msg.lower() or 'password' in error_msg.lower():
+                    error_cat = 'encrypted'
+                elif 'corrupt' in error_msg.lower():
+                    error_cat = 'corrupted'
+                else:
+                    error_cat = 'parse_error'
+                self._track_pdf_error(file_path, error_cat, error_msg)
+
+        # Load non-PDF files with generic reader
+        for file_path in non_pdf_files:
+            try:
                 reader = SimpleDirectoryReader(input_files=[file_path])
                 docs = reader.load_data()
                 documents.extend(docs)
@@ -107,7 +277,10 @@ class DocumentIndexer:
             except Exception as e:
                 logger.error(f"Failed to load {file_path}: {e}")
 
-        logger.info(f"Successfully loaded {len(documents)} documents")
+        logger.info(
+            f"Successfully loaded {len(documents)} documents "
+            f"(PDFs: {self._pdf_stats['successful']}/{self._pdf_stats['total']} successful)"
+        )
         return documents
 
     def create_index(self, documents: Optional[List[Any]] = None) -> VectorStoreIndex:
@@ -221,21 +394,50 @@ class DocumentIndexer:
         return self.create_index()
 
     def get_index_stats(self) -> Dict[str, Any]:
-        """Get statistics about the current index.
+        """Get statistics about the current index including PDF processing metrics.
 
         Returns:
-            Dictionary with index statistics
+            Dictionary with index statistics and PDF metrics
         """
+        stats = {}
+
+        # Always add PDF statistics if available
+        if self._pdf_stats['total'] > 0:
+            stats['pdf_processing'] = {
+                'total_files': self._pdf_stats['total'],
+                'successful': self._pdf_stats['successful'],
+                'failed': self._pdf_stats['failed'],
+                'success_rate': f"{(self._pdf_stats['successful'] / self._pdf_stats['total'] * 100):.1f}%" if self._pdf_stats['total'] > 0 else "N/A",
+                'total_processing_time_seconds': f"{self._pdf_stats['total_processing_time']:.2f}",
+                'errors_by_category': {
+                    cat: count
+                    for cat, count in self._pdf_stats['errors_by_category'].items()
+                    if count > 0
+                },
+            }
+
+            # Include failed files list if there are failures
+            if self._pdf_stats['failed_files']:
+                stats['pdf_processing']['failed_files'] = self._pdf_stats['failed_files'][:10]  # Show first 10 failures
+                if len(self._pdf_stats['failed_files']) > 10:
+                    stats['pdf_processing']['failed_files'].append({
+                        'filename': f"... and {len(self._pdf_stats['failed_files']) - 10} more"
+                    })
+
         if self.index is None:
-            return {"status": "No index loaded", "document_count": 0}
+            stats.update({"status": "No index loaded", "document_count": 0})
+            return stats
 
         try:
             doc_count = self.chroma_collection.count()
-            return {
+            stats.update({
                 "status": "Index loaded",
                 "document_count": doc_count,
                 "storage_path": self.config.storage_path,
                 "collection_name": self.collection_name
-            }
+            })
+
+            return stats
         except Exception as e:
-            return {"status": f"Error getting stats: {e}", "document_count": 0}
+            stats.update({"status": f"Error getting stats: {e}", "document_count": 0})
+            return stats

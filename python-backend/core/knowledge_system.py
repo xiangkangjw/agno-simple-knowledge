@@ -8,6 +8,7 @@ from .config import config
 from .document_service import DocumentIndexingService
 from .chat_service import KnowledgeChatService
 from .agno_knowledge import AgnoKnowledgeManager
+from .operation_manager import OperationManager
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ class KnowledgeSystem:
     def __init__(self) -> None:
         """Initialize the knowledge system."""
         self.config = config
+        self.operation_manager = OperationManager()
         self.knowledge_manager: Optional[AgnoKnowledgeManager] = None
         self.document_service: Optional[DocumentIndexingService] = None
         self.chat_service: Optional[KnowledgeChatService] = None
@@ -34,8 +36,8 @@ class KnowledgeSystem:
             # Initialize shared knowledge manager
             self.knowledge_manager = AgnoKnowledgeManager()
 
-            # Initialize document service
-            self.document_service = DocumentIndexingService()
+            # Initialize document service with operation manager
+            self.document_service = DocumentIndexingService(self.operation_manager)
             await self.document_service.initialize()
 
             # Initialize chat service
