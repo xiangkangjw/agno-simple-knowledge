@@ -20,6 +20,7 @@ import { api, SystemStatus } from "@/lib/api";
 interface DocumentStats {
   status: string;
   document_count: number;
+  source_file_count?: number;
   storage_path?: string;
   collection_name?: string;
 }
@@ -181,14 +182,14 @@ export function DocumentManager({ className }: DocumentManagerProps) {
                 </Badge>
               </div>
 
-              {/* Document Count */}
+              {/* Source Files Count */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <FileText className="h-4 w-4" />
-                  <span className="text-sm font-medium">Documents</span>
+                  <span className="text-sm font-medium">Files</span>
                 </div>
                 <div className="text-2xl font-bold">
-                  {stats?.document_count || 0}
+                  {(stats?.source_file_count ?? stats?.document_count) || 0}
                 </div>
               </div>
 

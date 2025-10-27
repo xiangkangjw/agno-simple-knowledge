@@ -393,6 +393,30 @@ class DocumentIndexer:
         # Create new index
         return self.create_index()
 
+    def _get_unique_source_files(self) -> int:
+        """Count unique source files in the ChromaDB collection.
+
+        Returns:
+            Number of unique source files indexed
+        """
+        try:
+            # Get all documents from the collection
+            all_docs = self.chroma_collection.get()
+
+            if not all_docs or not all_docs.get('metadatas'):
+                return 0
+
+            # Extract unique file paths from metadata
+            source_files = set()
+            for metadata in all_docs['metadatas']:
+                if metadata and 'file_path' in metadata:
+                    source_files.add(metadata['file_path'])
+
+            return len(source_files)
+        except Exception as e:
+            logger.warning(f"Could not count unique source files: {e}")
+            return 0
+
     def get_index_stats(self) -> Dict[str, Any]:
         """Get statistics about the current index including PDF processing metrics.
 
@@ -425,19 +449,21 @@ class DocumentIndexer:
                     })
 
         if self.index is None:
-            stats.update({"status": "No index loaded", "document_count": 0})
+            stats.update({"status": "No index loaded", "document_count": 0, "source_file_count": 0})
             return stats
 
         try:
             doc_count = self.chroma_collection.count()
+            source_file_count = self._get_unique_source_files()
             stats.update({
                 "status": "Index loaded",
                 "document_count": doc_count,
+                "source_file_count": source_file_count,
                 "storage_path": self.config.storage_path,
                 "collection_name": self.collection_name
             })
 
             return stats
         except Exception as e:
-            stats.update({"status": f"Error getting stats: {e}", "document_count": 0})
+            stats.update({"status": f"Error getting stats: {e}", "document_count": 0, "source_file_count": 0})
             return stats

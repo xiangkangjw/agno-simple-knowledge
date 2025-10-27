@@ -48,7 +48,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   };
 
   const getDocumentCount = () => {
-    return systemStatus?.index_stats?.document_count || 0;
+    return (systemStatus?.index_stats?.source_file_count ?? systemStatus?.index_stats?.document_count) || 0;
   };
 
   return (
@@ -65,7 +65,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             {systemStatus?.status === 'ready' && (
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <Activity className="h-4 w-4" />
-                <span>{getDocumentCount()} documents</span>
+                <span>{getDocumentCount()} files</span>
               </div>
             )}
           </div>

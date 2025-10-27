@@ -11,6 +11,7 @@ export interface SystemStatus {
   index_stats?: {
     status: string;
     document_count: number;
+    source_file_count?: number;
     storage_path: string;
     collection_name: string;
   };
@@ -57,6 +58,7 @@ export interface DocumentOperationResponse {
   stats?: {
     status: string;
     document_count: number;
+    source_file_count?: number;
   };
   error?: string;
 }
@@ -155,6 +157,7 @@ class ApiClient {
   async getDocumentStats(): Promise<{
     status: string;
     document_count: number;
+    source_file_count?: number;
     storage_path?: string;
     collection_name?: string;
   }> {

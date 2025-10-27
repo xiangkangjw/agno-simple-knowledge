@@ -104,11 +104,22 @@ async def global_exception_handler(request, exc):
 if __name__ == "__main__":
     # Run the server
     port = int(os.getenv("PORT", 8000))
+
+    # Disable reload when managed by Tauri to prevent orphaned processes
+    # In Tauri mode, the parent process manages restarts
+    is_tauri_managed = os.getenv("TAURI_MANAGED") == "true"
+    enable_reload = not is_tauri_managed
+
+    if is_tauri_managed:
+        logger.info("Running in Tauri-managed mode (reload disabled)")
+    else:
+        logger.info("Running in standalone mode (reload enabled)")
+
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=port,
-        reload=True,
+        reload=enable_reload,
         log_level=config.log_level_name.lower(),
         log_config=None,
     )
